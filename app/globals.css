@@ -1,0 +1,36 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --primary: 196 87% 38%;
+  --primary-foreground: 0 0% 100%;
+  --secondary-light-gray-blue: 196 16% 81%;
+  --secondary-soft-blue-green: 186 44% 82%;
+  --secondary-deep-earth: 90 28% 24%;
+  --neutral-light-gray: 0 2% 89%;
+}
+
+@layer base {
+  body {
+    background-color: #f8f9fa;
+    color: #1f2937;
+  }
+}
+
+@layer utilities {
+  .animate-enter {
+    transform: scale(0.95);
+    opacity: 0;
+    transition: transform 0.3s ease-out, opacity 0.3s ease-out;
+    animation-fill-mode: forwards;
+  }
+
+  .animate-leave {
+    transform: scale(1);
+    opacity: 1;
+    transition: transform 0.2s ease-in, opacity 0.2s ease-in;
+    animation-fill-mode: forwards;
+  }
+}
+
