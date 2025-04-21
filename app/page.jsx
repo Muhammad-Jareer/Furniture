@@ -9,11 +9,13 @@ import PromotionalOffers from "@/components/home/promotional-offers"
 import VendorHighlights from "@/components/home/vendor-highlights"
 import BlogPreview from "@/components/home/blog-preview"
 import CallToAction from "@/components/home/call-to-action"
+import { GoogleUserHandler } from "@/lib/GoogleUserHandler";
 
 export default function Home() {
   return (
     <div className="flex flex-col min-h-screen">
       <Header />
+      <GoogleUserHandler />
       <main className="flex-grow">
         <HeroSection />
 

@@ -22,6 +22,6 @@
       "@/*": ["./*"]
     }
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "components/ui/BreadcrumbWrapper.jsx", "components/ui/toast-provider.jsx"],
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "components/ui/BreadcrumbWrapper.jsx", "components/ui/toast-provider.jsx", "supabase/db.js"],
   "exclude": ["node_modules"]
 }

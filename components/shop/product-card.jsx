@@ -5,11 +5,13 @@ import Link from "next/link"
 import Image from "next/image"
 import { ShoppingCart, Heart, Star } from "lucide-react"
 import { useCart } from "@/app/context/CartContext";
+import { useWishlist } from "@/app/context/WishlistContext";
 import toast from "react-hot-toast"
 
 export default function ProductCard({ product, viewMode = "grid" }) {
   
   const { addToCart } = useCart() 
+  const { addToWishlist } = useWishlist() 
 
   const handleAddToCart = (e) => {
     e.preventDefault()
@@ -22,7 +24,8 @@ export default function ProductCard({ product, viewMode = "grid" }) {
   const handleAddToWishlist = (e) => {
     e.preventDefault()
     e.stopPropagation()
-    
+    addToWishlist(product)
+
     toast.success(`${product.name} added to wishlist`)
 
   }

@@ -5,17 +5,27 @@ import Link from "next/link"
 import { User, ShoppingBag, Heart, CreditCard, LogOut, Settings } from "lucide-react"
 import toast from "react-hot-toast"
 import { useNavigation } from "@/hooks/use-navigation"
+import { useRouter } from "next/navigation"
+import { signOut, getLoggedInUser } from "@/supabase/auth";
 
 export default function AccountSidebar({ activePage }) {
   const { currentPath, navigate } = useNavigation()
+  const router = useRouter()
 
-  const handleLogout = () => {
-    // In a real app, this would call a logout API
-    toast.success("You have been successfully logged out")
-
-    // Redirect to home page
-    window.location.href = "/"
-  }
+  const handleLogout = async () => {
+    
+    const { user, error: userError } = await getLoggedInUser();
+    const username = user?.email || "User";
+  
+    const { error } = await signOut();
+  
+    if (error) {
+      toast.error("Logout failed: " + userError);
+    } else {
+      toast.success(`Goodbye, ${username}!`);
+      router.push("/login");
+    }
+  };
 
   const menuItems = [
     {

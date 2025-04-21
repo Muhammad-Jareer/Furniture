@@ -3,12 +3,16 @@
 import { useState, useEffect, useRef } from "react"
 import { motion } from "framer-motion"
 import Link from "next/link"
-import { ShoppingCart, User, Menu, X, Search } from "lucide-react"
+import { ShoppingCart, User, Menu, X, Search, Heart } from "lucide-react"
 import { useNavigation } from "@/hooks/use-navigation"
 import toast from "react-hot-toast"
 import { productsData } from "@/app/data/productsData"
+import { useCart } from "@/app/context/CartContext";
+import { useWishlist } from "@/app/context/WishlistContext";
 
 export default function Header() {
+  const { cartItems } = useCart()
+  const { wishlistItems } = useWishlist()
   const { currentPath, isActive, navigate } = useNavigation()
   const [isScrolled, setIsScrolled] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
@@ -185,7 +189,21 @@ export default function Header() {
             >
               <ShoppingCart size={20} />
               <span className="absolute -top-2 -right-2 bg-[#1080b0] text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                0
+                {cartItems.length}
+              </span>
+            </Link>
+
+
+            <Link
+              href="/wishlist"
+              className={`relative text-gray-700 hover:text-[#1080b0] ${
+                currentPath === "/wishlist" || currentPath.startsWith("/checkout")
+                  ? "text-[#1080b0]" : ""
+              }`}
+            >
+              <Heart size={20} />
+              <span className="absolute -top-2 -right-2 bg-[#1080b0] text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                {wishlistItems.length}
               </span>
             </Link>
             {/* show hamburger until lg */}

@@ -1,62 +1,38 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
-import { Minus, Plus, X, ShoppingBag, ArrowRight, Truck, Shield, RotateCcw } from "lucide-react"
+import { Minus, Plus, X, ShoppingBag, ArrowRight } from "lucide-react"
 import Header from "@/components/layout/header"
 import Footer from "@/components/layout/footer"
 import BreadcrumbWrapper from "@/components/ui/BreadcrumbWrapper"
 import toast from "react-hot-toast"
+import { useCart } from "../context/CartContext";
 
 export default function CartPage() {
-  const [cartItems, setCartItems] = useState([])
-  const [loading, setLoading] = useState(true)
+  const {
+    cartItems,
+    removeFromCart,
+    clearCart,
+    updateQuantity,
+  } = useCart()
+
   const [promoCode, setPromoCode] = useState("")
   const [promoApplied, setPromoApplied] = useState(false)
   const [discount, setDiscount] = useState(0)
 
-  // Breadcrumb items for the cart page
   const breadcrumbItems = [{ label: "Home", href: "/" }, { label: "Cart" }]
-  
-
-  // Simulate fetching cart data
-  useEffect(() => {
-    const fetchCart = async () => {
-      // In a real app, this would be an API call
-      setTimeout(() => {
-        setCartItems([
-          {
-            id: 1,
-            name: "Modern Wooden Sofa",
-            image: "/placeholder.svg?height=120&width=120",
-            price: 1299.99,
-            quantity: 1,
-            maxQuantity: 5,
-          },
-          {
-            id: 2,
-            name: "Minimalist Coffee Table",
-            image: "/placeholder.svg?height=120&width=120",
-            price: 499.99,
-            quantity: 1,
-            maxQuantity: 10,
-          },
-        ])
-        setLoading(false)
-      }, 800)
-    }
-
-    fetchCart()
-  }, [])
 
   const handleQuantityChange = (id, newQuantity) => {
-    setCartItems(cartItems.map((item) => (item.id === id ? { ...item, quantity: newQuantity } : item)))
-  }
+    const parsedQuantity = Number(newQuantity); // Ensure it's a number
+    // If parsedQuantity is invalid, set it to 1
+    const validQuantity = !isNaN(parsedQuantity) && parsedQuantity >= 1 ? parsedQuantity : 1; 
+    updateQuantity(id, validQuantity);
+  };
 
   const handleRemoveItem = (id) => {
-    setCartItems(cartItems.filter((item) => item.id !== id))
-
+    removeFromCart(id)
     toast.success("The item has been removed from your cart")
   }
 
@@ -64,10 +40,9 @@ export default function CartPage() {
     if (promoCode.toLowerCase() === "welcome10") {
       setPromoApplied(true)
       setDiscount(calculateSubtotal() * 0.1)
-
       toast.success("10% discount has been applied to your order")
     } else {
-      toast.success("The promo code you entered is invalid or expired")
+      toast.error("The promo code you entered is invalid or expired")
     }
   }
 
@@ -76,37 +51,15 @@ export default function CartPage() {
   }
 
   const calculateTax = () => {
-    return calculateSubtotal() * 0.08 // 8% tax
+    return calculateSubtotal() * 0.08
   }
 
   const calculateShipping = () => {
-    const subtotal = calculateSubtotal()
-    return subtotal > 1000 ? 0 : 50 // Free shipping over $1000
+    return calculateSubtotal() > 1000 ? 0 : 50
   }
 
   const calculateTotal = () => {
     return calculateSubtotal() + calculateTax() + calculateShipping() - discount
-  }
-
-  if (loading) {
-    return (
-      <div className="flex flex-col min-h-screen">
-        <Header />
-        <main className="flex-grow py-8 bg-[#f8f9fa]">
-          <div className="container mx-auto px-4">
-            <div className="bg-white rounded-lg shadow-sm p-6">
-              <h1 className="text-2xl font-bold text-[#1080b0] mb-6">Shopping Cart</h1>
-              <div className="animate-pulse">
-                <div className="h-32 bg-gray-200 rounded-md mb-4"></div>
-                <div className="h-32 bg-gray-200 rounded-md mb-4"></div>
-                <div className="h-40 bg-gray-200 rounded-md"></div>
-              </div>
-            </div>
-          </div>
-        </main>
-        <Footer />
-      </div>
-    )
   }
 
   return (
@@ -133,6 +86,7 @@ export default function CartPage() {
             </div>
           ) : (
             <div className="flex flex-col lg:flex-row gap-8">
+              {/* Cart Items */}
               <div className="lg:w-2/3">
                 <div className="bg-white rounded-lg shadow-sm overflow-hidden">
                   <div className="p-6 border-b">
@@ -168,37 +122,38 @@ export default function CartPage() {
                           </div>
 
                           <div className="mt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                            <div className="flex items-center">
-                              <button
-                                onClick={() => handleQuantityChange(item.id, Math.max(1, item.quantity - 1))}
-                                disabled={item.quantity <= 1}
-                                className="p-1 border rounded-l-md bg-gray-50 text-gray-600 hover:bg-gray-100 disabled:opacity-50"
-                              >
-                                <Minus size={16} />
-                              </button>
-                              <input
-                                type="number"
-                                value={item.quantity}
-                                onChange={(e) =>
-                                  handleQuantityChange(
-                                    item.id,
-                                    Math.min(item.maxQuantity, Math.max(1, Number.parseInt(e.target.value) || 1)),
-                                  )
-                                }
-                                min="1"
-                                max={item.maxQuantity}
-                                className="p-1 w-12 text-center border-y outline-none"
-                              />
-                              <button
-                                onClick={() =>
-                                  handleQuantityChange(item.id, Math.min(item.maxQuantity, item.quantity + 1))
-                                }
-                                disabled={item.quantity >= item.maxQuantity}
-                                className="p-1 border rounded-r-md bg-gray-50 text-gray-600 hover:bg-gray-100 disabled:opacity-50"
-                              >
-                                <Plus size={16} />
-                              </button>
-                            </div>
+                          <div className="flex items-center">
+                            <button
+                              onClick={() => handleQuantityChange(item.id, item.quantity - 1)} // Decrement quantity
+                              disabled={item.quantity <= 1} // Disable if quantity is already 1
+                              className="p-1 border rounded-l-md bg-gray-50 text-gray-600 hover:bg-gray-100 disabled:opacity-50"
+                            >
+                              <Minus size={16} />
+                            </button>
+                            
+                            <input
+                              type="number"
+                              value={isNaN(item.quantity) ? 1 : item.quantity} // Handle NaN case
+                              onChange={(e) =>
+                                handleQuantityChange(
+                                  item.id,
+                                  Math.min(item.maxQuantity, Math.max(1, Number.parseInt(e.target.value) || 1)) // Handle invalid input
+                                )
+                              }
+                              min="1"
+                              max={item.maxQuantity}
+                              className="p-1 w-12 text-center border-y outline-none"
+                            />
+                            
+                            <button
+                              onClick={() => handleQuantityChange(item.id, item.quantity + 1)} // Increment quantity
+                              disabled={item.quantity >= item.maxQuantity} // Disable if quantity reaches max limit
+                              className="p-1 border rounded-r-md bg-gray-50 text-gray-600 hover:bg-gray-100 disabled:opacity-50"
+                            >
+                              <Plus size={16} />
+                            </button>
+                          </div>
+
 
                             <div className="text-right">
                               <p className="font-semibold">${(item.price * item.quantity).toFixed(2)}</p>
@@ -216,13 +171,14 @@ export default function CartPage() {
                       Continue Shopping
                     </Link>
 
-                    <button onClick={() => setCartItems([])} className="text-gray-600 hover:text-red-500">
+                    <button onClick={clearCart} className="text-gray-600 hover:text-red-500">
                       Clear Cart
                     </button>
                   </div>
                 </div>
               </div>
 
+              {/* Order Summary */}
               <div className="lg:w-1/3">
                 <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
                   <h2 className="text-xl font-semibold mb-4">Order Summary</h2>
@@ -285,36 +241,10 @@ export default function CartPage() {
 
                   <Link
                     href="/checkout"
-                    className="block w-full bg-[#1080b0] text-white py-3 rounded-md font-medium hover:bg-[#0c6a8e] transition-colors text-center"
+                    className="block w-full bg-[#1080b0] hover:bg-[#0c6a8e] text-white text-center py-3 rounded-md font-medium"
                   >
                     Proceed to Checkout
                   </Link>
-                </div>
-
-                <div className="bg-[#f8f9fa] rounded-lg p-4 space-y-3">
-                  <div className="flex items-start">
-                    <Truck size={20} className="text-[#1080b0] mr-3 mt-0.5 flex-shrink-0" />
-                    <div>
-                      <p className="font-medium">Free Shipping</p>
-                      <p className="text-sm text-gray-600">On orders over $1,000</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start">
-                    <RotateCcw size={20} className="text-[#1080b0] mr-3 mt-0.5 flex-shrink-0" />
-                    <div>
-                      <p className="font-medium">30-Day Returns</p>
-                      <p className="text-sm text-gray-600">Return or exchange within 30 days</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start">
-                    <Shield size={20} className="text-[#1080b0] mr-3 mt-0.5 flex-shrink-0" />
-                    <div>
-                      <p className="font-medium">Secure Checkout</p>
-                      <p className="text-sm text-gray-600">Your data is protected</p>
-                    </div>
-                  </div>
                 </div>
               </div>
             </div>
@@ -325,4 +255,3 @@ export default function CartPage() {
     </div>
   )
 }
-
