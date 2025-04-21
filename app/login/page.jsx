@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import Link from "next/link";
@@ -8,32 +8,29 @@ import { Eye, EyeOff, Loader2 } from "lucide-react";
 import Header from "@/components/layout/header";
 import Footer from "@/components/layout/footer";
 import toast from "react-hot-toast";
-import { login, signInWithGoogle, getLoggedInUser } from "../../supabase/auth";
+import { useAuth } from "../context/AuthContext";
 
 export default function LoginPage() {
+  const { login, isLoading, signInWithGoogle } = useAuth();
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({ email: "", password: "" });
-  const [loading, setLoading] = useState(false);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
+    const { error, user } = await login(formData);
 
-    const { user, error } = await login(formData);
     if (error) {
       toast.error(error.message || "Login failed. Try again.");
     } else {
-      toast.success("Login Successful! Welcome back!", user.user_metadata.first_name);
+      toast.success(`Welcome back, ${user?.user_metadata?.first_name || "user"}!`);
       router.push("/");
     }
-    
-    setLoading(false);
   };
 
   return (
@@ -112,13 +109,13 @@ export default function LoginPage() {
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   type="submit"
-                  disabled={loading}
+                  disabled={isLoading}
                   className={`w-full flex items-center justify-center gap-2 bg-[#1080b0] text-white py-3 rounded-md font-medium transition-colors duration-200 ${
-                    loading ? "cursor-not-allowed opacity-70" : "hover:bg-[#0c6a8e]"
+                    isLoading ? "cursor-not-allowed opacity-70" : "hover:bg-[#0c6a8e]"
                   }`}
                 >
-                  {loading && <Loader2 className="animate-spin w-4 h-4" />}
-                  {loading ? "Signing In..." : "Sign In"}
+                  {isLoading && <Loader2 className="animate-spin w-4 h-4" />}
+                  {isLoading ? "Signing In..." : "Sign In"}
                 </motion.button>
               </form>
 

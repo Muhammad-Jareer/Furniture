@@ -1,76 +1,61 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { motion } from "framer-motion"
-import Link from "next/link"
-import { Eye, EyeOff } from "lucide-react"
-import Header from "@/components/layout/header"
-import Footer from "@/components/layout/footer"
-import toast from "react-hot-toast"
-import { useRouter } from "next/navigation"
-import { signUp, signInWithGoogle } from "../../supabase/auth"
+import { useState } from "react";
+import { motion } from "framer-motion";
+import Link from "next/link";
+import { Eye, EyeOff } from "lucide-react";
+import Header from "@/components/layout/header";
+import Footer from "@/components/layout/footer";
+import toast from "react-hot-toast";
+import { useRouter } from "next/navigation";
+import { useAuth } from "../context/AuthContext"; // assuming the context is here
 
 export default function SignupPage() {
-  const [showPassword, setShowPassword] = useState(false)
-  const [loading, setLoading] = useState(false)
-  const router = useRouter()
-
+  const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
     email: "",
     password: "",
     confirmPassword: "",
-  })
+  });
+
+  const { signUp, signInWithGoogle, isLoading } = useAuth();
+  const router = useRouter();
 
   const handleInputChange = (e) => {
-    const { name, value } = e.target
-    setFormData({ ...formData, [name]: value })
-  }
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
 
   const handleSubmit = async (e) => {
-    console.log("📥 Form Data:", formData);
     e.preventDefault();
-  
-    try {
-      // Sign up the user
-      const { error } = await signUp({
-        email: formData.email.trim(),
-        password: formData.password.trim(),
-        data: {
-          first_name: formData.firstName.trim(),
-          last_name: formData.lastName.trim(),
-          role: "user",
-        },
-      });
-  
-      if (error) {
-        toast.error(error.message);
-        return;
-      }
-  
-      toast.success("Registration successful!");
-  
-      // Wait for the session to be available before redirecting
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-  
-      if (sessionError) {
-        toast.error("Error fetching session");
-        return;
-      }
-  
-      if (session) {
-        // Ensure the user data is inserted into user_table (GoogleUserHandler logic)
-        await handleUserInsert(session.user); // Call the user insert function here
-  
-        router.push("/"); // Now you can safely redirect after session is ready
-      }
-    } catch (err) {
-      console.error("🔥 Unexpected signup error:", err);
-      toast.error("Something went wrong!");
+
+    const { firstName, lastName, email, password, confirmPassword } = formData;
+
+    if (password.trim() !== confirmPassword.trim()) {
+      toast.error("Passwords do not match");
+      return;
     }
+
+    const { error } = await signUp({
+      email: email.trim(),
+      password: password.trim(),
+      data: {
+        first_name: firstName.trim(),
+        last_name: lastName.trim(),
+        role: "user",
+      },
+    });
+
+    if (error) {
+      toast.error(error.message || "Failed to register");
+      return;
+    }
+
+    toast.success("Signup successful!");
+    router.push("/");
   };
-  
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -89,53 +74,26 @@ export default function SignupPage() {
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                  <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 mb-1">
-                    First Name
-                  </label>
-                  <input
-                    type="text"
-                    id="firstName"
-                    name="firstName"
-                    value={formData.firstName}
-                    onChange={handleInputChange}
-                    className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#1080b0]"
-                    placeholder="Enter your first name"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label htmlFor="lastName" className="block text-sm font-medium text-gray-700 mb-1">
-                    Last Name
-                  </label>
-                  <input
-                    type="text"
-                    id="lastName"
-                    name="lastName"
-                    value={formData.lastName}
-                    onChange={handleInputChange}
-                    className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#1080b0]"
-                    placeholder="Enter your last name"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-                    Email Address
-                  </label>
-                  <input
-                    type="email"
-                    id="email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleInputChange}
-                    className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#1080b0]"
-                    placeholder="Enter your email"
-                    required
-                  />
-                </div>
+                {["firstName", "lastName", "email"].map((field) => (
+                  <div key={field}>
+                    <label
+                      htmlFor={field}
+                      className="block text-sm font-medium text-gray-700 mb-1 capitalize"
+                    >
+                      {field === "email" ? "Email Address" : field.replace(/([A-Z])/g, " $1")}
+                    </label>
+                    <input
+                      type={field === "email" ? "email" : "text"}
+                      id={field}
+                      name={field}
+                      value={formData[field]}
+                      onChange={handleInputChange}
+                      className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#1080b0]"
+                      placeholder={`Enter your ${field === "email" ? "email" : field}`}
+                      required
+                    />
+                  </div>
+                ))}
 
                 <div>
                   <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
@@ -182,12 +140,12 @@ export default function SignupPage() {
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   type="submit"
-                  disabled={loading}
+                  disabled={isLoading}
                   className={`w-full ${
-                    loading ? "bg-gray-400" : "bg-[#1080b0] hover:bg-[#0c6a8e]"
+                    isLoading ? "bg-gray-400" : "bg-[#1080b0] hover:bg-[#0c6a8e]"
                   } text-white py-3 rounded-md font-medium transition`}
                 >
-                  {loading ? "Creating..." : "Create Account"}
+                  {isLoading ? "Creating..." : "Create Account"}
                 </motion.button>
               </form>
 
@@ -218,5 +176,5 @@ export default function SignupPage() {
       </main>
       <Footer />
     </div>
-  )
+  );
 }

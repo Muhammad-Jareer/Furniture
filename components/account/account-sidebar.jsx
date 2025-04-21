@@ -6,70 +6,41 @@ import { User, ShoppingBag, Heart, CreditCard, LogOut, Settings } from "lucide-r
 import toast from "react-hot-toast"
 import { useNavigation } from "@/hooks/use-navigation"
 import { useRouter } from "next/navigation"
-import { signOut, getLoggedInUser } from "@/supabase/auth";
+import { useAuth } from "@/app/context/AuthContext"
 
 export default function AccountSidebar({ activePage }) {
+  const { user, signOut } = useAuth()
   const { currentPath, navigate } = useNavigation()
   const router = useRouter()
 
   const handleLogout = async () => {
-    
-    const { user, error: userError } = await getLoggedInUser();
-    const username = user?.email || "User";
-  
-    const { error } = await signOut();
-  
+    const username = user?.email || "User"
+    const { error } = await signOut()
+
     if (error) {
-      toast.error("Logout failed: " + userError);
+      toast.error("Logout failed: " + error.message)
     } else {
-      toast.success(`Goodbye, ${username}!`);
-      router.push("/login");
+      toast.success(`Goodbye, ${username}!`)
+      router.push("/login")
     }
-  };
+  }
 
   const menuItems = [
-    {
-      id: "profile",
-      label: "My Profile",
-      icon: <User size={18} />,
-      href: "/account/profile",
-    },
-    {
-      id: "orders",
-      label: "My Orders",
-      icon: <ShoppingBag size={18} />,
-      href: "/account/orders",
-    },
-    {
-      id: "wishlist",
-      label: "Wishlist",
-      icon: <Heart size={18} />,
-      href: "/account/wishlist",
-    },
-    {
-      id: "payment",
-      label: "Payment Methods",
-      icon: <CreditCard size={18} />,
-      href: "/account/payment",
-    },
-    {
-      id: "settings",
-      label: "Account Settings",
-      icon: <Settings size={18} />,
-      href: "/account/settings",
-    },
+    { id: "profile",  label: "My Profile",      icon: <User size={18} />,        href: "/account/profile" },
+    { id: "orders",   label: "My Orders",       icon: <ShoppingBag size={18} />,  href: "/account/orders" },
+    { id: "wishlist", label: "Wishlist",        icon: <Heart size={18} />,        href: "/account/wishlist" },
+    { id: "payment",  label: "Payment Methods", icon: <CreditCard size={18} />,   href: "/account/payment" },
+    { id: "settings", label: "Account Settings",icon: <Settings size={18} />,     href: "/account/settings" },
   ]
 
-  // Determine active page based on current path if not explicitly provided
   const getActivePage = () => {
     if (activePage) return activePage
-
     for (const item of menuItems) {
       if (currentPath === item.href || currentPath.startsWith(item.href)) {
         return item.id
       }
     }
-    return "profile" // Default
+    return "profile"
   }
 
   const activePageId = getActivePage()
@@ -79,12 +50,14 @@ export default function AccountSidebar({ activePage }) {
       <h2 className="font-bold text-lg mb-4 px-2">My Account</h2>
 
       <nav className="space-y-1">
-        {menuItems.map((item) => (
+        {menuItems.map(item => (
           <Link key={item.id} href={item.href} onClick={() => navigate(item.href)}>
             <motion.div
               whileHover={{ x: 5 }}
               className={`flex items-center px-2 py-3 rounded-md cursor-pointer ${
-                activePageId === item.id ? "bg-[#bae1e6] text-[#1080b0]" : "text-gray-700 hover:bg-gray-100"
+                activePageId === item.id
+                  ? "bg-[#bae1e6] text-[#1080b0]"
+                  : "text-gray-700 hover:bg-gray-100"
               }`}
             >
               <span className="mr-3">{item.icon}</span>
@@ -106,4 +79,3 @@ export default function AccountSidebar({ activePage }) {
     </div>
   )
 }
-
