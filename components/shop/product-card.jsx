@@ -9,25 +9,31 @@ import { useWishlist } from "@/app/context/WishlistContext";
 import toast from "react-hot-toast"
 
 export default function ProductCard({ product, viewMode = "grid" }) {
-  
   const { addToCart } = useCart() 
   const { addToWishlist } = useWishlist() 
 
-  const handleAddToCart = (e) => {
+  const handleAddToCart = async (e) => {
     e.preventDefault()
     e.stopPropagation()
-    addToCart(product)
-
-    toast.success(`${product.name} added to cart`)
+    try {
+      await addToCart(product)
+      toast.success(`${product.name} added to cart`)
+    } catch (err) {
+      toast.error("Failed to add to cart")
+      console.error(err)
+    }
   }
   
-  const handleAddToWishlist = (e) => {
+  const handleAddToWishlist = async (e) => {
     e.preventDefault()
     e.stopPropagation()
-    addToWishlist(product)
-
-    toast.success(`${product.name} added to wishlist`)
-
+    try {
+      await addToWishlist(product)
+      toast.success(`${product.name} added to wishlist`)
+    } catch (err) {
+      toast.error("Failed to add to wishlist")
+      console.error(err)
+    }
   }
 
   if (viewMode === "list") {
@@ -68,16 +74,14 @@ export default function ProductCard({ product, viewMode = "grid" }) {
 
               <p className="text-sm text-gray-600 mb-4">By {product.vendor}</p>
 
-              <p className="text-gray-700 mb-4">
-                Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et
-                dolore magna aliqua.
-              </p>
+              <p className="text-gray-700 mb-4">{product.description?.slice(0, 100) || "No description available."}</p>
+
             </div>
 
             <div className="flex items-center justify-between mt-4">
               <div>
                 <span className="font-bold text-xl">${product.price.toFixed(2)}</span>
-                {!product.inStock && <span className="ml-2 text-red-500 text-sm">Out of Stock</span>}
+                {!product.in_stock && <span className="ml-2 text-red-500 text-sm">Out of Stock</span>}
               </div>
 
               <div className="flex space-x-2">
@@ -94,9 +98,9 @@ export default function ProductCard({ product, viewMode = "grid" }) {
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={handleAddToCart}
-                  disabled={!product.inStock}
+                  disabled={!product.in_stock}
                   className={`px-4 py-2 rounded-md ${
-                    product.inStock
+                    product.in_stock
                       ? "bg-[#1080b0] text-white hover:bg-[#0c6a8e]"
                       : "bg-gray-300 text-gray-500 cursor-not-allowed"
                   } transition-colors flex items-center`}
@@ -163,9 +167,9 @@ export default function ProductCard({ product, viewMode = "grid" }) {
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.95 }}
               onClick={handleAddToCart}
-              disabled={!product.inStock}
+              disabled={!product.in_stock}
               className={`p-2 rounded-full ${
-                product.inStock
+                product.in_stock
                   ? "bg-[#1080b0] text-white hover:bg-[#0c6a8e]"
                   : "bg-gray-300 text-gray-500 cursor-not-allowed"
               } transition-colors`}
@@ -176,7 +180,7 @@ export default function ProductCard({ product, viewMode = "grid" }) {
           </div>
         </div>
 
-        {!product.inStock && <p className="text-red-500 text-sm mt-2">Out of Stock</p>}
+        {!product.in_stock && <p className="text-red-500 text-sm mt-2">Out of Stock</p>}
       </div>
     </motion.div>
   )

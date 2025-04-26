@@ -1,25 +1,56 @@
-"use client";
+"use client"; 
 
+import { useState, useEffect } from "react";
+import { useWishlist } from "@/app/context/WishlistContext";
+import { useCart } from "@/app/context/CartContext";
+import { supabase } from "@/supabase/client";
 import Link from "next/link";
 import Image from "next/image";
-import { X, Heart } from "lucide-react";
+import { Heart, ShoppingCart, Trash2 } from "lucide-react";
 import Header from "@/components/layout/header";
 import Footer from "@/components/layout/footer";
-import BreadcrumbWrapper from "@/components/ui/BreadcrumbWrapper";
 import toast from "react-hot-toast";
-import { useWishlist } from "../context/WishlistContext"; // ✅ Correct context
 
 export default function WishlistPage() {
-  const { wishlistItems, removeFromWishlist } = useWishlist(); // ✅ Use wishlist context
-  
-  const breadcrumbItems = [
-    { label: "Home", href: "/" },
-    { label: "Wishlist" },
-  ];
+  const { wishlistItems, removeFromWishlist, clearWishlist } = useWishlist();
+  const { addToCart } = useCart();
+  const [products, setProducts] = useState([]);
+
+  // Fetch full product details whenever wishlistItems change
+  useEffect(() => {
+    async function loadProducts() {
+      if (wishlistItems.length === 0) {
+        setProducts([]);
+        return;
+      }
+      const ids = wishlistItems.map((w) => w.id);
+      const { data, error } = await supabase
+        .from("products")
+        .select("id, name, price, image, in_stock, category, created_at")
+        .in("id", ids);
+
+      if (!error) {
+        setProducts(data);
+      } else {
+        console.error("Error loading wishlist products:", error);
+      }
+    }
+    loadProducts();
+  }, [wishlistItems]);
 
   const handleRemoveItem = (id) => {
     removeFromWishlist(id);
-    toast.success("Removed from wishlist");
+    toast.success("Item removed from your wishlist");
+  };
+
+  const handleAddToCart = (product) => {
+    addToCart(product);
+    toast.success(`${product.name} added to cart`);
+  };
+
+  const handleClearWishlist = () => {
+    clearWishlist();
+    toast.success("All items removed from your wishlist");
   };
 
   return (
@@ -27,54 +58,137 @@ export default function WishlistPage() {
       <Header />
       <main className="flex-grow py-8 bg-[#f8f9fa]">
         <div className="container mx-auto px-4">
-          <BreadcrumbWrapper items={breadcrumbItems} />
-          <h1 className="text-2xl md:text-3xl font-bold text-[#1080b0] mb-6">Your Wishlist</h1>
+          <div className="bg-white rounded-lg shadow-sm p-6">
+            <div className="flex justify-between items-center mb-6">
+              <h1 className="text-2xl font-bold text-[#1080b0]">
+                My Wishlist
+              </h1>
+              {products.length > 0 && (
+                <button
+                  onClick={handleClearWishlist}
+                  className="text-gray-600 hover:text-red-500 text-sm font-medium"
+                >
+                  Clear Wishlist
+                </button>
+              )}
+            </div>
 
-          {wishlistItems.length === 0 ? (
-            <div className="bg-white rounded-lg shadow-sm p-8 text-center">
-              <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-[#bae1e6] mb-4">
-                <Heart size={32} className="text-[#1080b0]" />
-              </div>
-              <h2 className="text-xl font-semibold mb-2">Your wishlist is empty</h2>
-              <p className="text-gray-500 mb-6">Start adding products you love!</p>
-              <Link
-                href="/shop"
-                className="inline-block bg-[#1080b0] hover:bg-[#0c6a8e] text-white px-6 py-3 rounded-md font-medium"
-              >
-                Continue Shopping
-              </Link>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-              {wishlistItems.map((item) => (
-                <div key={item.id} className="bg-white rounded-xl shadow-sm p-4 relative group transition hover:shadow-md">
-                  <button
-                    onClick={() => handleRemoveItem(item.id)}
-                    className="absolute top-2 right-2 z-10 p-2 rounded-full bg-white shadow-md hover:bg-blue-100 transition duration-300"
-                    aria-label="Remove from wishlist"
-                  >
-                    <X size={20} className="text-gray-500 hover:text-[#1080b0] transition-colors duration-300" />
-                  </button>
-                  <Link href={`/product/${item.id}`}>
-                    <div className="relative w-full h-40 rounded-lg overflow-hidden">
-                      <Image
-                        src={item.image || "/placeholder.svg"}
-                        alt={item.name}
-                        fill
-                        className="object-cover group-hover:scale-105 transition-transform"
-                      />
-                    </div>
-                    <div className="mt-3 flex justify-between">
-                      <h3 className="text-md font-semibold text-gray-800 hover:text-[#1080b0] line-clamp-1">
-                        {item.name}
-                      </h3>
-                      <p className="text-sm text-gray-500 mt-1">${item.price?.toFixed(2)}</p>
-                    </div>
-                  </Link>
+            {products.length === 0 ? (
+              <div className="text-center py-12">
+                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-[#bae1e6] mb-4">
+                  <Heart size={24} className="text-[#1080b0]" />
                 </div>
-              ))}
-            </div>
-          )}
+                <h3 className="text-lg font-semibold mb-2">
+                  Your Wishlist is Empty
+                </h3>
+                <p className="text-gray-500 mb-6">
+                  Browse our collections and add items you love to your
+                  wishlist.
+                </p>
+                <Link
+                  href="/shop"
+                  className="inline-block bg-[#1080b0] hover:bg-[#0c6a8e] text-white px-6 py-2 rounded-md font-medium transition-colors"
+                >
+                  Start Shopping
+                </Link>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b">
+                      <th className="text-left py-3 px-4">Product</th>
+                      <th className="text-left py-3 px-4">Price</th>
+                      <th className="text-left py-3 px-4">Status</th>
+                      <th className="text-left py-3 px-4">Added On</th>
+                      <th className="text-right py-3 px-4">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {products.map((item) => (
+                      <tr
+                        key={item.id}
+                        className="border-b hover:bg-gray-50"
+                      >
+                        <td className="py-4 px-4">
+                          <div className="flex items-center">
+                            <div className="relative h-16 w-16 rounded-md overflow-hidden mr-4">
+                              <Image
+                                src={item.image || "/placeholder.svg"}
+                                alt={item.name}
+                                fill
+                                className="object-cover"
+                              />
+                            </div>
+                            <div>
+                              <Link
+                                href={`/product/${item.id}`}
+                                className="font-medium hover:text-[#1080b0] hover:underline"
+                              >
+                                {item.name}
+                              </Link>
+                              <p className="text-sm text-gray-500">
+                                {item.category}
+                              </p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="py-4 px-4 font-medium">
+                          ${item.price.toFixed(2)}
+                        </td>
+                        <td className="py-4 px-4">
+                          {item.in_stock ? (
+                            <span className="text-green-600 bg-green-100 px-2 py-1 rounded-full text-xs font-medium">
+                              In Stock
+                            </span>
+                          ) : (
+                            <span className="text-red-600 bg-red-100 px-2 py-1 rounded-full text-xs font-medium">
+                              Out of Stock
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-4 px-4 text-gray-500">
+                          {new Date(item.created_at).toLocaleDateString(
+                            "en-US",
+                            {
+                              year: "numeric",
+                              month: "short",
+                              day: "numeric",
+                            }
+                          )}
+                        </td>
+                        <td className="py-4 px-4 text-right">
+                          <div className="flex justify-end space-x-2">
+                            <button
+                              onClick={() => handleAddToCart(item)}
+                              disabled={!item.in_stock}
+                              className={`p-2 rounded-full ${
+                                item.in_stock
+                                  ? "bg-[#1080b0] text-white hover:bg-[#0c6a8e]"
+                                  : "bg-gray-200 text-gray-400 cursor-not-allowed"
+                              }`}
+                              title={
+                                item.in_stock ? "Add to cart" : "Out of stock"
+                              }
+                            >
+                              <ShoppingCart size={16} />
+                            </button>
+                            <button
+                              onClick={() => handleRemoveItem(item.id)}
+                              className="p-2 rounded-full bg-gray-100 text-gray-600 hover:bg-red-100 hover:text-red-500"
+                              title="Remove from wishlist"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
         </div>
       </main>
       <Footer />

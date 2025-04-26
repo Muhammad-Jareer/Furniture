@@ -1,66 +1,79 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import Link from "next/link"
-import Image from "next/image"
-import { Minus, Plus, X, ShoppingBag, ArrowRight } from "lucide-react"
-import Header from "@/components/layout/header"
-import Footer from "@/components/layout/footer"
-import BreadcrumbWrapper from "@/components/ui/BreadcrumbWrapper"
-import toast from "react-hot-toast"
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import Image from "next/image";
+import { Minus, Plus, X, ShoppingBag, ArrowRight } from "lucide-react";
+import Header from "@/components/layout/header";
+import Footer from "@/components/layout/footer";
+import BreadcrumbWrapper from "@/components/ui/BreadcrumbWrapper";
+import toast from "react-hot-toast";
 import { useCart } from "../context/CartContext";
+import { getProductById } from "@/supabase/db";
 
 export default function CartPage() {
-  const {
-    cartItems,
-    removeFromCart,
-    clearCart,
-    updateQuantity,
-  } = useCart()
+  const { cartItems, removeFromCart, clearCart, updateQuantity } = useCart();
 
-  const [promoCode, setPromoCode] = useState("")
-  const [promoApplied, setPromoApplied] = useState(false)
-  const [discount, setDiscount] = useState(0)
+  const [promoCode, setPromoCode] = useState("");
+  const [promoApplied, setPromoApplied] = useState(false);
+  const [discount, setDiscount] = useState(0);
 
-  const breadcrumbItems = [{ label: "Home", href: "/" }, { label: "Cart" }]
+  const [fullCartItems, setFullCartItems] = useState([]);
+
+  useEffect(() => {
+    const fetchProductDetails = async () => {
+      const updatedCartItems = await Promise.all(
+        cartItems.map(async (cartItem) => {
+          const product = await getProductById(cartItem.id); // Fetch product data by ID
+          return { ...cartItem, ...product }; // Merge cart item with product details
+        })
+      );
+      setFullCartItems(updatedCartItems);
+    };
+
+    if (cartItems.length > 0) {
+      fetchProductDetails();
+    }
+  }, [cartItems]);
+
+  const breadcrumbItems = [{ label: "Home", href: "/" }, { label: "Cart" }];
 
   const handleQuantityChange = (id, newQuantity) => {
-    const parsedQuantity = Number(newQuantity); // Ensure it's a number
-    // If parsedQuantity is invalid, set it to 1
-    const validQuantity = !isNaN(parsedQuantity) && parsedQuantity >= 1 ? parsedQuantity : 1; 
+    const parsedQuantity = Number(newQuantity);
+    const validQuantity = !isNaN(parsedQuantity) && parsedQuantity >= 1 ? parsedQuantity : 1;
     updateQuantity(id, validQuantity);
   };
 
   const handleRemoveItem = (id) => {
-    removeFromCart(id)
-    toast.success("The item has been removed from your cart")
-  }
+    removeFromCart(id);
+    toast.success("The item has been removed from your cart");
+  };
 
   const handleApplyPromo = () => {
-    if (promoCode.toLowerCase() === "welcome10") {
-      setPromoApplied(true)
-      setDiscount(calculateSubtotal() * 0.1)
-      toast.success("10% discount has been applied to your order")
+    if (promoCode.trim().toLowerCase() === "welcome10") {
+      setPromoApplied(true);
+      setDiscount(calculateSubtotal() * 0.1);
+      toast.success("10% discount has been applied!");
     } else {
-      toast.error("The promo code you entered is invalid or expired")
+      toast.error("Invalid or expired promo code.");
     }
-  }
+  };
 
   const calculateSubtotal = () => {
-    return cartItems.reduce((total, item) => total + item.price * item.quantity, 0)
-  }
+    return cartItems.reduce((total, item) => total + item.price * item.quantity, 0);
+  };
 
   const calculateTax = () => {
-    return calculateSubtotal() * 0.08
-  }
+    return calculateSubtotal() * 0.08;
+  };
 
   const calculateShipping = () => {
-    return calculateSubtotal() > 1000 ? 0 : 50
-  }
+    return calculateSubtotal() > 1000 ? 0 : 50;
+  };
 
   const calculateTotal = () => {
-    return calculateSubtotal() + calculateTax() + calculateShipping() - discount
-  }
+    return calculateSubtotal() + calculateTax() + calculateShipping() - discount;
+  };
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -70,16 +83,16 @@ export default function CartPage() {
           <BreadcrumbWrapper items={breadcrumbItems} />
           <h1 className="text-2xl md:text-3xl font-bold text-[#1080b0] mb-6">Shopping Cart</h1>
 
-          {cartItems.length === 0 ? (
+          {fullCartItems.length === 0 ? (
             <div className="bg-white rounded-lg shadow-sm p-8 text-center">
               <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-[#bae1e6] mb-4">
                 <ShoppingBag size={32} className="text-[#1080b0]" />
               </div>
               <h2 className="text-xl font-semibold mb-2">Your Cart is Empty</h2>
-              <p className="text-gray-500 mb-6">Looks like you haven't added any items to your cart yet.</p>
+              <p className="text-gray-500 mb-6">Looks like you haven't added any items yet.</p>
               <Link
                 href="/shop"
-                className="inline-block bg-[#1080b0] hover:bg-[#0c6a8e] text-white px-6 py-3 rounded-md font-medium transition-colors"
+                className="inline-block bg-[#1080b0] hover:bg-[#0c6a8e] text-white px-6 py-3 rounded-md font-medium"
               >
                 Continue Shopping
               </Link>
@@ -90,11 +103,11 @@ export default function CartPage() {
               <div className="lg:w-2/3">
                 <div className="bg-white rounded-lg shadow-sm overflow-hidden">
                   <div className="p-6 border-b">
-                    <h2 className="text-xl font-semibold">Cart Items ({cartItems.length})</h2>
+                    <h2 className="text-xl font-semibold">Cart Items ({fullCartItems.length})</h2>
                   </div>
 
                   <div>
-                    {cartItems.map((item) => (
+                    {fullCartItems.map((item) => (
                       <div key={item.id} className="p-6 border-b flex flex-col sm:flex-row gap-4">
                         <div className="sm:w-24 flex-shrink-0">
                           <div className="relative h-24 w-24 rounded-md overflow-hidden">
@@ -122,42 +135,40 @@ export default function CartPage() {
                           </div>
 
                           <div className="mt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                          <div className="flex items-center">
-                            <button
-                              onClick={() => handleQuantityChange(item.id, item.quantity - 1)} // Decrement quantity
-                              disabled={item.quantity <= 1} // Disable if quantity is already 1
-                              className="p-1 border rounded-l-md bg-gray-50 text-gray-600 hover:bg-gray-100 disabled:opacity-50"
-                            >
-                              <Minus size={16} />
-                            </button>
-                            
-                            <input
-                              type="number"
-                              value={isNaN(item.quantity) ? 1 : item.quantity} // Handle NaN case
-                              onChange={(e) =>
-                                handleQuantityChange(
-                                  item.id,
-                                  Math.min(item.maxQuantity, Math.max(1, Number.parseInt(e.target.value) || 1)) // Handle invalid input
-                                )
-                              }
-                              min="1"
-                              max={item.maxQuantity}
-                              className="p-1 w-12 text-center border-y outline-none"
-                            />
-                            
-                            <button
-                              onClick={() => handleQuantityChange(item.id, item.quantity + 1)} // Increment quantity
-                              disabled={item.quantity >= item.maxQuantity} // Disable if quantity reaches max limit
-                              className="p-1 border rounded-r-md bg-gray-50 text-gray-600 hover:bg-gray-100 disabled:opacity-50"
-                            >
-                              <Plus size={16} />
-                            </button>
-                          </div>
+                            <div className="flex items-center">
+                              <button
+                                onClick={() => handleQuantityChange(item.id, item.quantity - 1)}
+                                disabled={item.quantity <= 1}
+                                className="p-1 border rounded-l-md bg-gray-50 text-gray-600 hover:bg-gray-100 disabled:opacity-50"
+                              >
+                                <Minus size={16} />
+                              </button>
 
+                              <input
+                                type="number"
+                                value={item.quantity}
+                                min="1"
+                                max={item.maxQuantity}
+                                onChange={(e) => {
+                                  const newQty = Number(e.target.value) || 1;
+                                  const validQty = Math.min(Math.max(newQty, 1), item.maxQuantity);
+                                  handleQuantityChange(item.id, validQty);
+                                }}
+                                className="p-1 w-12 text-center border-y outline-none"
+                              />
+
+                              <button
+                                onClick={() => handleQuantityChange(item.id, item.quantity + 1)}
+                                disabled={item.quantity >= item.maxQuantity}
+                                className="p-1 border rounded-r-md bg-gray-50 text-gray-600 hover:bg-gray-100 disabled:opacity-50"
+                              >
+                                <Plus size={16} />
+                              </button>
+                            </div>
 
                             <div className="text-right">
                               <p className="font-semibold">${(item.price * item.quantity).toFixed(2)}</p>
-                              <p className="text-sm text-gray-500">${item.price.toFixed(2)} each</p>
+                              <p className="text-sm text-gray-500">${(item.price || 0).toFixed(2)} each</p>
                             </div>
                           </div>
                         </div>
@@ -170,7 +181,6 @@ export default function CartPage() {
                       <ArrowRight size={16} className="mr-2 rotate-180" />
                       Continue Shopping
                     </Link>
-
                     <button onClick={clearCart} className="text-gray-600 hover:text-red-500">
                       Clear Cart
                     </button>
@@ -226,7 +236,7 @@ export default function CartPage() {
                         onChange={(e) => setPromoCode(e.target.value)}
                         disabled={promoApplied}
                         placeholder={promoApplied ? "WELCOME10 Applied" : "Enter promo code"}
-                        className="flex-grow p-2 border rounded-l-md focus:outline-none focus:ring-2 focus:ring-[#1080b0] focus:border-transparent disabled:bg-gray-100"
+                        className="flex-grow p-2 border rounded-l-md focus:outline-none focus:ring-2 focus:ring-[#1080b0] disabled:bg-gray-100"
                       />
                       <button
                         onClick={handleApplyPromo}
@@ -253,5 +263,5 @@ export default function CartPage() {
       </main>
       <Footer />
     </div>
-  )
+  );
 }

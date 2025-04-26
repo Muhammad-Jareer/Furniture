@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import Image from "next/image"
 import Link from "next/link"
@@ -11,28 +11,71 @@ import BreadcrumbWrapper from "@/components/ui/BreadcrumbWrapper"
 import ProductReviews from "@/components/product/product-reviews"
 import RelatedProducts from "@/components/product/related-products"
 import { useParams } from "next/navigation"
-import { productsData } from "@/app/data/productsData"
 import toast from "react-hot-toast"
+import { getProducts } from "@/supabase/db"
+import LoadingSpinner  from "@/components/spinner/spinner";
 
 export default function ProductPage({ params }) {
   const { id } = useParams()
   const [quantity, setQuantity] = useState(1)
   const [activeTab, setActiveTab] = useState("description")
   const [activeImageIndex, setActiveImageIndex] = useState(0)
+  const [products, setProducts] = useState([])
+  const [loading, setLoading] = useState(true)
 
-  // In a real app, this would be fetched from an API
+  // Fetch products on mount
+  useEffect(() => {
+    const fetchProducts = async () => {
+      setLoading(true)
+      try {
+        const data = await getProducts()
+        setProducts(data)
+      } catch (err) {
+        toast.error("Failed to load products")
+        console.error("ProductPage › fetchProducts error:", err)
+      } finally {
+        setLoading(false)
+      }
+    }
 
-  const product = productsData.find((item) => item?.id === Number(id))
+    fetchProducts()
+  }, [])
 
-  const varientImages = {
-    images: [
-      "/placeholder.svg?height=600&width=600",
-      "/placeholder.svg?height=600&width=600",
-      "/placeholder.svg?height=600&width=600",
-    ],
+  // Find the current product
+  const product = products.find((item) => item?.id === id)
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="flex flex-col min-h-screen">
+        <Header />
+        <main className="flex-grow flex items-center justify-center">
+        <LoadingSpinner size="lg" speed="fast" color="secondary" />
+        </main>
+        <Footer />
+      </div>
+    )
   }
 
-  const images = [product.image, ...varientImages.images];
+  // Handle case where product is not found
+  if (!product) {
+    return (
+      <div className="flex flex-col min-h-screen">
+        <Header />
+        <main className="flex-grow flex items-center justify-center">
+          <div className="text-center">
+            <h1 className="text-2xl font-bold mb-4">Product not found</h1>
+            <Link href="/shop" className="text-[#1080b0] hover:underline">
+              Return to shop
+            </Link>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    )
+  }
+
+  const images = [product.image, ...(product.variant_images || [])]
 
   const breadcrumbItems = [
     { label: "Home", href: "/" },
@@ -56,10 +99,8 @@ export default function ProductPage({ params }) {
   }
 
   const handleShare = () => {
-    // Copy product URL to clipboard
     const productUrl = window.location.href
     navigator.clipboard.writeText(productUrl).catch(() => {
-      // Fallback if clipboard API is not available
       const tempInput = document.createElement("input")
       tempInput.value = productUrl
       document.body.appendChild(tempInput)
@@ -103,6 +144,7 @@ export default function ProductPage({ params }) {
                         alt={product.name}
                         fill
                         className="object-contain p-4"
+                        priority
                       />
                     </motion.div>
                   </AnimatePresence>
@@ -182,13 +224,13 @@ export default function ProductPage({ params }) {
                     </p>
                     <p className="font-medium">
                       Availability:
-                      <span className={product.inStock ? "text-green-600 ml-1" : "text-red-500 ml-1"}>
-                        {product.inStock ? "In Stock" : "Out of Stock"}
+                      <span className={product.in_stock ? "text-green-600 ml-1" : "text-red-500 ml-1"}>
+                        {product.in_stock ? "In Stock" : "Out of Stock"}
                       </span>
                     </p>
                   </div>
 
-                  {product.inStock && (
+                  {product.in_stock && (
                     <div className="mb-6">
                       <label htmlFor="quantity" className="block font-medium mb-2">
                         Quantity
@@ -226,9 +268,9 @@ export default function ProductPage({ params }) {
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                       onClick={handleAddToCart}
-                      disabled={!product.inStock}
+                      disabled={!product.in_stock}
                       className={`flex-1 py-3 px-6 rounded-md font-medium flex items-center justify-center ${
-                        product.inStock
+                        product.in_stock
                           ? "bg-[#1080b0] text-white hover:bg-[#0c6a8e]"
                           : "bg-gray-300 text-gray-500 cursor-not-allowed"
                       }`}
@@ -407,4 +449,3 @@ export default function ProductPage({ params }) {
     </div>
   )
 }
-

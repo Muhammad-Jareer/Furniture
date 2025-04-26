@@ -7,11 +7,13 @@ import { ShoppingCart, User, Menu, X, Search, Heart } from "lucide-react"
 import { useNavigation } from "@/hooks/use-navigation"
 import toast from "react-hot-toast"
 import { productsData } from "@/app/data/productsData"
-import { useCart } from "@/app/context/CartContext";
+// import { useCart } from "@/app/context/CartContext";
 import { useWishlist } from "@/app/context/WishlistContext";
+import { useAuth } from "@/app/context/AuthContext"
 
 export default function Header() {
-  const { cartItems } = useCart()
+  const { user } = useAuth()
+  // const { cartItems 0eCart()
   const { wishlistItems } = useWishlist()
   const { currentPath, isActive, navigate } = useNavigation()
   const [isScrolled, setIsScrolled] = useState(false)
@@ -168,8 +170,10 @@ export default function Header() {
             </div>
           </div>
 
+
           {/* ACTIONS & HAMBURGER */}
           <div className="flex items-center space-x-4">
+          <p>{user?.user_metadata.full_name || user?.user_metadata.first_name}</p>
             <Link
               href="/account/profile"
               onClick={() => navigate("/account/profile")}
@@ -189,7 +193,7 @@ export default function Header() {
             >
               <ShoppingCart size={20} />
               <span className="absolute -top-2 -right-2 bg-[#1080b0] text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                {cartItems.length}
+                {0}
               </span>
             </Link>
 

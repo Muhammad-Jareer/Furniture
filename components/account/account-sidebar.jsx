@@ -2,33 +2,37 @@
 
 import { motion } from "framer-motion"
 import Link from "next/link"
-import { User, ShoppingBag, Heart, CreditCard, LogOut, Settings } from "lucide-react"
+import { User, ShoppingBag, CreditCard, LogOut, Settings } from "lucide-react"
 import toast from "react-hot-toast"
 import { useNavigation } from "@/hooks/use-navigation"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/app/context/AuthContext"
 
 export default function AccountSidebar({ activePage }) {
-  const { user, signOut } = useAuth()
+  const { user, signOut, isLoading } = useAuth()
   const { currentPath, navigate } = useNavigation()
   const router = useRouter()
 
   const handleLogout = async () => {
-    const username = user?.email || "User"
-    const { error } = await signOut()
-
-    if (error) {
-      toast.error("Logout failed: " + error.message)
-    } else {
-      toast.success(`Goodbye, ${username}!`)
-      router.push("/login")
+    if (isLoading) {
+      toast.loading("Please wait...");
+      return;
     }
-  }
+  
+    const username = user?.email || "User";
+    const { error } = await signOut();
+  
+    if (error) {
+      toast.error("Logout failed: " + error.message);
+    } else {
+      toast.success(`Goodbye, ${username}!`);
+      router.push("/login");
+    }
+  };
 
   const menuItems = [
     { id: "profile",  label: "My Profile",      icon: <User size={18} />,        href: "/account/profile" },
     { id: "orders",   label: "My Orders",       icon: <ShoppingBag size={18} />,  href: "/account/orders" },
-    { id: "wishlist", label: "Wishlist",        icon: <Heart size={18} />,        href: "/account/wishlist" },
     { id: "payment",  label: "Payment Methods", icon: <CreditCard size={18} />,   href: "/account/payment" },
     { id: "settings", label: "Account Settings",icon: <Settings size={18} />,     href: "/account/settings" },
   ]
@@ -68,13 +72,15 @@ export default function AccountSidebar({ activePage }) {
 
         <button
           onClick={handleLogout}
-          className="w-full flex items-center px-2 py-3 rounded-md text-gray-700 hover:bg-gray-100"
+          className={`w-full flex items-center px-2 py-3 rounded-md text-gray-700 ${isLoading ? 'cursor-not-allowed opacity-50' : 'hover:bg-gray-100'}`}
+          disabled={isLoading}
         >
           <span className="mr-3">
             <LogOut size={18} />
           </span>
           <span>Logout</span>
         </button>
+
       </nav>
     </div>
   )

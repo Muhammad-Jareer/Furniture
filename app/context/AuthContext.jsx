@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 import { createContext, useContext, useEffect, useState } from "react";
 import { supabase } from "@/supabase/client";
@@ -18,59 +18,57 @@ export const AuthProvider = ({ children }) => {
 
   const upsertUserProfile = async (user) => {
     if (!user) return;
-  
+
+    let firstName = "User";
+    let lastName = "";
+    const metadata = user.user_metadata || {};
+
+    if (metadata.first_name) firstName = metadata.first_name;
+    if (metadata.last_name) lastName = metadata.last_name;
+
+    if (!metadata.first_name && !metadata.last_name && metadata.full_name) {
+      const nameParts = metadata.full_name.trim().split(" ");
+      if (nameParts.length > 0) firstName = nameParts[0];
+      if (nameParts.length > 1) lastName = nameParts.slice(1).join(" ");
+    }
+
     try {
-      const { data, error } = await supabase
-        .from("user_table")
-        .select("id")
-        .eq("id", user.id)
-        .maybeSingle();
-  
-      // ✅ User already exists
-      if (data) return;
-  
-      // ❌ Some other unexpected error
-      if (error && error.code !== "PGRST116") {
-        console.error("Error checking user existence:", error);
-        return;
-      }
-  
-      // ✅ If no data and no critical error, insert the user
-      const { error: insertError } = await supabase.from("user_table").insert([
-        {
+      const { error } = await supabase.from("user_table").upsert(
+        [{
           id: user.id,
           email: user.email,
-          first_name: user.user_metadata?.full_name?.split(" ")[0] || "Google",
-          last_name: user.user_metadata?.full_name?.split(" ")[1] || "User",
-          role: "user",
-        },
-      ]);
-  
-      if (insertError) {
-        console.error("Error inserting user:", insertError);
-      }
+          first_name: firstName,
+          last_name: lastName,
+          role: metadata.role || "user",
+        }],
+        { onConflict: "id" }
+      );
+      if (error) console.error("Upsert error:", error);
     } catch (err) {
       console.error("Unexpected error during upsert:", err);
     }
   };
-  
 
   useEffect(() => {
     const initializeUser = async () => {
       setIsLoading(true);
-      const { user, error } = await getLoggedInUser();
-      if (error) {
+      try {
+        const { user, error } = await getLoggedInUser();
+        if (error) {
+          setUser(null);
+          return;
+        }
+
+        if (user) {
+          setUser(user);
+          await upsertUserProfile(user);
+        }
+      } catch (err) {
+        console.error("Unexpected error during initialization:", err);
         setUser(null);
+      } finally {
         setIsLoading(false);
-        return;
       }
-
-      if (user) {
-        setUser(user);
-        await upsertUserProfile(user);
-      }
-
-      setIsLoading(false);
     };
 
     initializeUser();
@@ -92,15 +90,12 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const signOut = async () => {
-    // call your imported Supabase helper (aliased as `logout`)
     const { error } = await logout();
-  
     if (error) {
       console.error("Error signing out:", error);
       return { error };
     }
-  
-    // clear local state
+
     setUser(null);
     return { error: null };
   };

@@ -1,4 +1,6 @@
 "use client"
+import { syncCartWithSupabase } from "@/app/context/CartContext";
+import { syncWishlistWithSupabase } from "@/app/context/WishlistContext";
 import { supabase } from "./client"
 
 // Sign up with email/password
@@ -30,19 +32,7 @@ export const signUp = async ({ email, password, data }) => {
     return { error: new Error("User object is missing after signup") };
   }
 
-  const { error: insertError } = await supabase.from("user_table").insert([
-    {
-      id: user.id,
-      email,
-      first_name: data?.first_name,
-      last_name: data?.last_name,
-      role: data?.role || "user",
-    },
-  ]);
-
-  if (insertError) {
-    return { error: insertError };
-  }
+  // ❌ Don't insert/upsert here anymore — let AuthContext handle that
 
   return { user, error: null };
 };
@@ -63,7 +53,11 @@ export const login = async ({ email, password }) => {
     return { error: loginError };
   }
 
-  return { user: data.user, error: null }; 
+  const user = data.user;
+  await syncWishlistWithSupabase(user.id);
+  // await syncCartWithSupabase(user.id);  
+
+  return { user, error: null }; 
 };
 
 // get the current logegd-in user
@@ -113,6 +107,10 @@ export const signInWithGoogle = async () => {
     console.error("Google sign-in error:", error)
     return null
   }
+  const user = data.user;
+  
+  await syncWishlistWithSupabase(user.id);
+  // await syncCartWithSupabase(user.id);
   
   return data
 }

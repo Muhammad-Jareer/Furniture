@@ -11,6 +11,7 @@ import AccountSidebar from "@/components/account/account-sidebar"
 import toast from "react-hot-toast"
 
 export default function ProfilePage() {
+  
   const [isEditing, setIsEditing] = useState(false)
   const [userData, setUserData] = useState({
     name: "John Doe",
