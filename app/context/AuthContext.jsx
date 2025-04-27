@@ -9,6 +9,7 @@ import {
   getLoggedInUser,
   signInWithGoogle,
 } from "../../supabase/auth";
+import { syncCartWithSupabase } from "@/supabase/cart_items";
 
 const AuthContext = createContext();
 
@@ -62,6 +63,8 @@ export const AuthProvider = ({ children }) => {
         if (user) {
           setUser(user);
           await upsertUserProfile(user);
+          // ALSO fire a migration here in case we reloaded from OAuth
+          await syncCartWithSupabase(user.id);
         }
       } catch (err) {
         console.error("Unexpected error during initialization:", err);
@@ -78,6 +81,7 @@ export const AuthProvider = ({ children }) => {
         if (event === "SIGNED_IN" && session?.user) {
           setUser(session.user);
           await upsertUserProfile(session.user);
+          await syncCartWithSupabase(session.user.id);
         } else if (event === "SIGNED_OUT") {
           setUser(null);
         }

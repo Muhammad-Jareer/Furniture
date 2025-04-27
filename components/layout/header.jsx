@@ -9,11 +9,12 @@ import toast from "react-hot-toast"
 import { productsData } from "@/app/data/productsData"
 // import { useCart } from "@/app/context/CartContext";
 import { useWishlist } from "@/app/context/WishlistContext";
+import { useCart } from "@/app/context/CartContext";
 import { useAuth } from "@/app/context/AuthContext"
 
 export default function Header() {
   const { user } = useAuth()
-  // const { cartItems 0eCart()
+  const { cartItems } =  useCart()
   const { wishlistItems } = useWishlist()
   const { currentPath, isActive, navigate } = useNavigation()
   const [isScrolled, setIsScrolled] = useState(false)
@@ -193,7 +194,7 @@ export default function Header() {
             >
               <ShoppingCart size={20} />
               <span className="absolute -top-2 -right-2 bg-[#1080b0] text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                {0}
+                {cartItems.length}
               </span>
             </Link>
 

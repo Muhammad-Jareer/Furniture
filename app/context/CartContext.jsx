@@ -2,114 +2,107 @@
 
 import { createContext, useContext, useState, useEffect } from "react";
 import {
-  cartItems as fetchCartItems,
-  addToCart as addCartItem,
-  removeFromCart as deleteCartItem,
-  clearCart as clearCartItems,
-  syncCartListWithSupabase,
+  fetchCartItems,
+  addCartItem,
+  updateCartItem,
+  deleteCartItem,
+  isItemInCart,
+  clearCartItems,
 } from "@/supabase/cart_items";
 import { useAuth } from "./AuthContext";
 
 const CartContext = createContext();
 
 export const CartProvider = ({ children }) => {
-  const { user, isLoading } = useAuth();
+  const { user } = useAuth();
   const [cartItems, setCartItems] = useState([]);
-  const [error, setError] = useState(null); // To handle errors
+  const [error, setError] = useState(null);
 
+  // Load cart on user change
   useEffect(() => {
     const loadCart = async () => {
       try {
         if (user) {
-          const supabaseCart = await fetchCartItems(user);
-          if (supabaseCart.length > 0) {
-            setCartItems(
-              supabaseCart.map((item) => ({
-                id: item.product_id,
-                quantity: item.quantity,
-              }))
-            );
-          } else {
-            const stored = localStorage.getItem("cart");
-            const localCart = stored ? JSON.parse(stored) : [];
-            if (localCart.length > 0) {
-              await syncCartListWithSupabase(user.id, localCart);
-              setCartItems(localCart);
-              localStorage.removeItem("cart");
-            }
-          }
+          // Fetch from Supabase
+          const items = await fetchCartItems(user.id);
+          setCartItems(
+            items.map((item) => ({
+              id: item.product_id,
+              quantity: item.quantity,
+            }))
+          );
         } else {
-          const stored = localStorage.getItem("cart");
-          const localCart = stored ? JSON.parse(stored) : [];
-          setCartItems(localCart);
+          // Load from localStorage
+          const stored = localStorage.getItem("cart_items");
+          setCartItems(stored ? JSON.parse(stored) : []);
         }
       } catch (err) {
         setError("Failed to load cart items.");
-        console.error("Error loading cart:", err);
+        console.error("[CartContext] loadCart error:", err);
       }
     };
 
     loadCart();
   }, [user]);
 
+  // Persist to localStorage when logged-out
   useEffect(() => {
     if (!user) {
-      localStorage.setItem("cart", JSON.stringify(cartItems));
+      localStorage.setItem("cart_items", JSON.stringify(cartItems));
     }
   }, [cartItems, user]);
 
+  // Add or update item
   const addToCart = async (product, quantity = 1) => {
     try {
+      // Update local state
       setCartItems((prev) => {
-        const existing = prev.find((item) => item.id === product.id);
+        const existing = prev.find((i) => i.id === product.id);
         if (existing) {
-          return prev.map((item) =>
-            item.id === product.id
-              ? { ...item, quantity: item.quantity + quantity }
-              : item
+          return prev.map((i) =>
+            i.id === product.id ? { ...i, quantity: i.quantity + quantity } : i
           );
         }
         return [...prev, { id: product.id, quantity }];
       });
-  
+
       if (user) {
-        // ✅ Pass correctly structured data
-        await addCartItem({ product_id: product.id, quantity }, user);
+        // Check server and insert/update
+        const serverItem = await isItemInCart(user.id, product.id);
+        if (serverItem) {
+          await updateCartItem(serverItem.id, serverItem.quantity + quantity);
+        } else {
+          await addCartItem({
+            user_id: user.id,
+            product_id: product.id,
+            quantity,
+          });
+        }
       }
     } catch (err) {
       setError("Failed to add item to cart.");
-      console.error("Error adding to cart:", err);
+      console.error("[CartContext] addToCart error:", err);
     }
   };
-  
-  // CartContext.jsx
 
-const removeFromCart = async (productId) => {
-  try {
-    console.log("[CartContext] Removing item from cart:", productId);
-    console.log("[CartContext] User ID in removeFromCart:", user?.id);
+  // Remove an item
+  const removeFromCart = async (productId) => {
+    try {
+      setCartItems((prev) => prev.filter((i) => i.id !== productId));
 
-    // Remove from local state
-    setCartItems((prev) => prev.filter((item) => item.id !== productId));
-
-    if (user?.id) {
-      console.log(
-        "[CartContext] Deleting cart item from Supabase for",
-        { user_id: user.id, product_id: productId }
-      );
-      await deleteCartItem(productId, user);
-    } else {
-      console.warn("[CartContext] User ID is not valid. Skipping Supabase delete.");
+      if (user) {
+        const serverItem = await isItemInCart(user.id, productId);
+        if (serverItem) {
+          await deleteCartItem(serverItem.id);
+        }
+      }
+    } catch (err) {
+      setError("Failed to remove item from cart.");
+      console.error("[CartContext] removeFromCart error:", err);
     }
-  } catch (err) {
-    setError("Failed to remove item from cart.");
-    console.error("Error removing from cart:", err);
-  }
-};
+  };
 
-  
-  
-
+  // Clear entire cart
   const clearCart = async () => {
     try {
       setCartItems([]);
@@ -117,11 +110,11 @@ const removeFromCart = async (productId) => {
       if (user) {
         await clearCartItems(user.id);
       } else {
-        localStorage.removeItem("cart");
+        localStorage.removeItem("cart_items");
       }
     } catch (err) {
       setError("Failed to clear cart.");
-      console.error("Error clearing cart:", err);
+      console.error("[CartContext] clearCart error:", err);
     }
   };
 
@@ -132,7 +125,7 @@ const removeFromCart = async (productId) => {
         addToCart,
         removeFromCart,
         clearCart,
-        error, 
+        error,
       }}
     >
       {children}

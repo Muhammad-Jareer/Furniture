@@ -1,7 +1,7 @@
 "use client"
-import { syncCartWithSupabase } from "@/app/context/CartContext";
 import { syncWishlistWithSupabase } from "@/app/context/WishlistContext";
 import { supabase } from "./client"
+import { syncCartWithSupabase } from "./cart_items";
 
 // Sign up with email/password
 export const signUp = async ({ email, password, data }) => {
@@ -54,8 +54,13 @@ export const login = async ({ email, password }) => {
   }
 
   const user = data.user;
-  await syncWishlistWithSupabase(user.id);
-  // await syncCartWithSupabase(user.id);  
+  console.log("[auth.login] pre‐sync local cart:", localStorage.getItem("cart_items"));
+  
+  if(user) {
+    await syncWishlistWithSupabase(user.id);
+    await syncCartWithSupabase(user.id)
+    console.log("[auth.login] syncCartWithSupabase returned");
+  }
 
   return { user, error: null }; 
 };
@@ -66,8 +71,13 @@ export const getLoggedInUser = async () => {
     const { data: { user }, error } = await supabase.auth.getUser();
 
     if (error) {
-      console.error("Error fetching user:", error.message);
-      return { error };
+      if (error.message === "Auth session missing!") {
+        console.warn("No user session found (user not logged in).");
+        return { user: null };
+      } else {
+        console.error("Error fetching user:", error.message);
+        return { error };
+      }
     }
 
     if (!user) {
@@ -103,14 +113,17 @@ export const signInWithGoogle = async () => {
       redirectTo: "http://localhost:3000",
     },
   })
-  if (error) {
-    console.error("Google sign-in error:", error)
-    return null
-  }
-  const user = data.user;
   
-  await syncWishlistWithSupabase(user.id);
-  // await syncCartWithSupabase(user.id);
+  if (error) throw error;
+
+  const user = data.user;
+  console.log("[auth.signInWithGoogle] pre‐sync local cart:", localStorage.getItem("cart_items"));
+  
+  if(user) {
+    await syncWishlistWithSupabase(user.id);
+    await syncCartWithSupabase(user.id)
+    console.log("[auth.signInWithGoogle] syncCartWithSupabase done");
+  }
   
   return data
 }

@@ -4,19 +4,20 @@ import { motion } from "framer-motion"
 import Link from "next/link"
 import Image from "next/image"
 import { ShoppingCart, Heart, Star } from "lucide-react"
-import { useCart } from "@/app/context/CartContext";
-import { useWishlist } from "@/app/context/WishlistContext";
+import { useCart } from "@/app/context/CartContext"
+import { useWishlist } from "@/app/context/WishlistContext"
 import toast from "react-hot-toast"
 
 export default function ProductCard({ product, viewMode = "grid" }) {
-  const { addToCart } = useCart() 
-  const { addToWishlist } = useWishlist() 
+  const { addToCart } = useCart()
+  const { addToWishlist } = useWishlist()
 
+  // Add exactly one of this product
   const handleAddToCart = async (e) => {
     e.preventDefault()
     e.stopPropagation()
     try {
-      await addToCart(product)
+      await addToCart({ id: product.id, quantity: 1 })
       toast.success(`${product.name} added to cart`)
     } catch (err) {
       toast.error("Failed to add to cart")
@@ -185,4 +186,3 @@ export default function ProductCard({ product, viewMode = "grid" }) {
     </motion.div>
   )
 }
-
