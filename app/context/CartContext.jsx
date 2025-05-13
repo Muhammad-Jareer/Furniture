@@ -16,34 +16,40 @@ const CartContext = createContext();
 export const CartProvider = ({ children }) => {
   const { user } = useAuth();
   const [cartItems, setCartItems] = useState([]);
+  const [loading, setLoading] = useState(false); // 🆕 loading state
   const [error, setError] = useState(null);
 
   // Load cart on user change
-  useEffect(() => {
-    const loadCart = async () => {
-      try {
-        if (user) {
-          // Fetch from Supabase
-          const items = await fetchCartItems(user.id);
-          setCartItems(
-            items.map((item) => ({
-              id: item.product_id,
-              quantity: item.quantity,
-            }))
-          );
-        } else {
-          // Load from localStorage
-          const stored = localStorage.getItem("cart_items");
-          setCartItems(stored ? JSON.parse(stored) : []);
-        }
-      } catch (err) {
-        setError("Failed to load cart items.");
-        console.error("[CartContext] loadCart error:", err);
-      }
-    };
 
-    loadCart();
-  }, [user]);
+useEffect(() => {
+  const loadCart = async () => {
+    console.log("[CartContext] ▶️ loadCart start, user=", user);
+    setLoading(true);
+
+    try {
+      if (user) {
+        console.log("[CartContext]  fetching from Supabase…");
+        const items = await fetchCartItems(user.id);
+        console.log("[CartContext]  got items:", items);
+        setCartItems(items.map(i => ({ id: i.product_id, quantity: i.quantity })));
+      } else {
+        console.log("[CartContext]  loading from localStorage…");
+        const stored = localStorage.getItem("cart_items");
+        console.log("[CartContext]  raw localStorage:", stored);
+        setCartItems(stored ? JSON.parse(stored) : []);
+      }
+    } catch (err) {
+      setError("Failed to load cart items.");
+      console.error("[CartContext] 🔥 loadCart error:", err);
+    } finally {
+      console.log("[CartContext] ✅ loadCart done, setting loading=false");
+      setLoading(false);
+    }
+  };
+
+  loadCart();
+}, [user]);
+
 
   // Persist to localStorage when logged-out
   useEffect(() => {
@@ -55,7 +61,6 @@ export const CartProvider = ({ children }) => {
   // Add or update item
   const addToCart = async (product, quantity = 1) => {
     try {
-      // Update local state
       setCartItems((prev) => {
         const existing = prev.find((i) => i.id === product.id);
         if (existing) {
@@ -67,7 +72,6 @@ export const CartProvider = ({ children }) => {
       });
 
       if (user) {
-        // Check server and insert/update
         const serverItem = await isItemInCart(user.id, product.id);
         if (serverItem) {
           await updateCartItem(serverItem.id, serverItem.quantity + quantity);
@@ -122,6 +126,7 @@ export const CartProvider = ({ children }) => {
     <CartContext.Provider
       value={{
         cartItems,
+        loading, // 🆕 Expose loading state
         addToCart,
         removeFromCart,
         clearCart,

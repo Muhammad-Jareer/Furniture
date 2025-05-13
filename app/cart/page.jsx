@@ -7,17 +7,22 @@ import { Minus, Plus, X, ShoppingBag, ArrowRight } from "lucide-react";
 import Header from "@/components/layout/header";
 import Footer from "@/components/layout/footer";
 import BreadcrumbWrapper from "@/components/ui/BreadcrumbWrapper";
+import LoadingSpinner from "@/components/spinner/spinner";
 import toast from "react-hot-toast";
 import { useCart } from "../context/CartContext";
 import { getProductById } from "@/supabase/db";
 
 export default function CartPage() {
-  const { cartItems, addToCart, removeFromCart, clearCart } = useCart();
+  const { cartItems, addToCart, removeFromCart, clearCart, loading } = useCart();
   const [fullCartItems, setFullCartItems] = useState([]);
 
   // whenever cartItems changes, re-fetch product details
   useEffect(() => {
     const fetchProductDetails = async () => {
+      if (cartItems.length === 0) {
+        setFullCartItems([]);
+        return;
+      }
       const updated = await Promise.all(
         cartItems.map(async (ci) => {
           const product = await getProductById(ci.id);
@@ -27,19 +32,15 @@ export default function CartPage() {
       setFullCartItems(updated);
     };
 
-    if (cartItems.length) {
-      fetchProductDetails();
-    } else {
-      setFullCartItems([]);
-    }
-  }, [cartItems]);
+    fetchProductDetails();
+  }, [cartItems.length]);
 
   const breadcrumbItems = [
     { label: "Home", href: "/" },
     { label: "Cart" },
   ];
 
-  // compute how much to add (or subtract) to reach newQuantity
+  // handle quantity deltas
   const handleQuantityChange = (id, newQuantity) => {
     const current = cartItems.find((i) => i.id === id)?.quantity || 0;
     const delta = newQuantity - current;
@@ -59,7 +60,6 @@ export default function CartPage() {
 
   const calculateSubtotal = () =>
     fullCartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
-
   const calculateTax = () => calculateSubtotal() * 0.08;
   const calculateShipping = () => (calculateSubtotal() > 1000 ? 0 : 50);
   const calculateTotal = () =>
@@ -74,6 +74,19 @@ export default function CartPage() {
       toast.error("Invalid or expired promo code.");
     }
   };
+
+  // **Early return for loading state**
+  if (loading) {
+    return (
+      <div className="flex flex-col min-h-screen">
+        <Header />
+        <main className="flex-grow flex items-center justify-center bg-[#f8f9fa]">
+          <LoadingSpinner />
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -90,9 +103,7 @@ export default function CartPage() {
               <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-[#bae1e6] mb-4">
                 <ShoppingBag size={32} className="text-[#1080b0]" />
               </div>
-              <h2 className="text-xl font-semibold mb-2">
-                Your Cart is Empty
-              </h2>
+              <h2 className="text-xl font-semibold mb-2">Your Cart is Empty</h2>
               <p className="text-gray-500 mb-6">
                 Looks like you haven't added any items yet.
               </p>
@@ -216,9 +227,7 @@ export default function CartPage() {
               {/* Order Summary */}
               <div className="lg:w-1/3">
                 <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-                  <h2 className="text-xl font-semibold mb-4">
-                    Order Summary
-                  </h2>
+                  <h2 className="text-xl font-semibold mb-4">Order Summary</h2>
 
                   <div className="space-y-3 mb-6">
                     <div className="flex justify-between">
