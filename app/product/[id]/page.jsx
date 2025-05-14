@@ -13,7 +13,8 @@ import RelatedProducts from "@/components/product/related-products"
 import { useParams } from "next/navigation"
 import toast from "react-hot-toast"
 import { getProducts } from "@/supabase/db"
-import LoadingSpinner  from "@/components/spinner/spinner";
+import { useCart } from "@/app/context/CartContext"
+import { useWishlist } from "@/app/context/WishlistContext"
 
 export default function ProductPage({ params }) {
   const { id } = useParams()
@@ -22,6 +23,32 @@ export default function ProductPage({ params }) {
   const [activeImageIndex, setActiveImageIndex] = useState(0)
   const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
+  const { addToCart } = useCart()
+  const { addToWishlist } = useWishlist()
+
+  const handleAddToCart = async (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    try {
+      await addToCart({ id: product.id, quantity: 1 })
+      toast.success(`${product.name} added to cart`)
+    } catch (err) {
+      toast.error("Failed to add to cart")
+      console.error(err)
+    }
+  }
+  
+  const handleAddToWishlist = async (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    try {
+      await addToWishlist(product)
+      toast.success(`${product.name} added to wishlist`)
+    } catch (err) {
+      toast.error("Failed to add to wishlist")
+      console.error(err)
+    }
+  }
 
   // Fetch products on mount
   useEffect(() => {
@@ -43,19 +70,6 @@ export default function ProductPage({ params }) {
 
   // Find the current product
   const product = products.find((item) => item?.id === id)
-
-  // Loading state
-  if (loading) {
-    return (
-      <div className="flex flex-col min-h-screen">
-        <Header />
-        <main className="flex-grow flex items-center justify-center">
-        <LoadingSpinner size="lg" speed="fast" color="secondary" />
-        </main>
-        <Footer />
-      </div>
-    )
-  }
 
   // Handle case where product is not found
   if (!product) {
@@ -88,14 +102,6 @@ export default function ProductPage({ params }) {
     if (newQuantity >= 1 && newQuantity <= 10) {
       setQuantity(newQuantity)
     }
-  }
-
-  const handleAddToCart = () => {
-    toast.success(`${product.name} added to cart`)
-  }
-
-  const handleAddToWishlist = () => {
-    toast.success(`${product.name} added to wishlist`)
   }
 
   const handleShare = () => {

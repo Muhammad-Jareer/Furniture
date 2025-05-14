@@ -43,8 +43,6 @@ export default function ShopPage() {
       try {
         const data = await getProducts();
         setProducts(data);
-        console.log(data);
-        
       } catch (err) {
         toast.error("Failed to load products");
         console.error("ShopPage › fetchProducts error:", err);

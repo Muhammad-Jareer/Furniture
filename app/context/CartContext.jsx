@@ -23,26 +23,19 @@ export const CartProvider = ({ children }) => {
 
 useEffect(() => {
   const loadCart = async () => {
-    console.log("[CartContext] ▶️ loadCart start, user=", user);
     setLoading(true);
 
     try {
       if (user) {
-        console.log("[CartContext]  fetching from Supabase…");
         const items = await fetchCartItems(user.id);
-        console.log("[CartContext]  got items:", items);
         setCartItems(items.map(i => ({ id: i.product_id, quantity: i.quantity })));
       } else {
-        console.log("[CartContext]  loading from localStorage…");
         const stored = localStorage.getItem("cart_items");
-        console.log("[CartContext]  raw localStorage:", stored);
         setCartItems(stored ? JSON.parse(stored) : []);
       }
     } catch (err) {
       setError("Failed to load cart items.");
-      console.error("[CartContext] 🔥 loadCart error:", err);
     } finally {
-      console.log("[CartContext] ✅ loadCart done, setting loading=false");
       setLoading(false);
     }
   };
@@ -85,7 +78,6 @@ useEffect(() => {
       }
     } catch (err) {
       setError("Failed to add item to cart.");
-      console.error("[CartContext] addToCart error:", err);
     }
   };
 
@@ -102,7 +94,6 @@ useEffect(() => {
       }
     } catch (err) {
       setError("Failed to remove item from cart.");
-      console.error("[CartContext] removeFromCart error:", err);
     }
   };
 
@@ -118,7 +109,6 @@ useEffect(() => {
       }
     } catch (err) {
       setError("Failed to clear cart.");
-      console.error("[CartContext] clearCart error:", err);
     }
   };
 
