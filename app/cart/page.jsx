@@ -7,13 +7,12 @@ import { Minus, Plus, X, ShoppingBag, ArrowRight } from "lucide-react";
 import Header from "@/components/layout/header";
 import Footer from "@/components/layout/footer";
 import BreadcrumbWrapper from "@/components/ui/BreadcrumbWrapper";
-import LoadingSpinner from "@/components/spinner/spinner";
 import toast from "react-hot-toast";
 import { useCart } from "../context/CartContext";
 import { getProductById } from "@/supabase/db";
 
 export default function CartPage() {
-  const { cartItems, addToCart, removeFromCart, clearCart, loading } = useCart();
+  const { cartItems, addToCart, removeFromCart, clearCart } = useCart();
   const [fullCartItems, setFullCartItems] = useState([]);
 
   // whenever cartItems changes, re-fetch product details
@@ -75,18 +74,6 @@ export default function CartPage() {
     }
   };
 
-  // **Early return for loading state**
-  if (loading) {
-    return (
-      <div className="flex flex-col min-h-screen">
-        <Header />
-        <main className="flex-grow flex items-center justify-center bg-[#f8f9fa]">
-          <LoadingSpinner />
-        </main>
-        <Footer />
-      </div>
-    );
-  }
 
   return (
     <div className="flex flex-col min-h-screen">
